@@ -1,0 +1,98 @@
+#include <iostream>
+#include <vector>
+#include <cassert>
+#include "../src/jaccard.cuh"
+#include "test_utils.cuh"
+
+void calculate_intersection_union(
+    const int *const __restrict__ a,
+    const int n_rows,
+    const int n_cols,
+    const int window_size,
+    float *const __restrict__ intersections,
+    float *const __restrict__ unions)
+{
+    for (int i = 0; i < n_rows; i++)
+    {
+        for (int j = i + 1; j < i + 1 + window_size; j++)
+        {
+            for (int col = 0; col < n_cols; col++)
+            {
+                int intersection = 0, union_set = 0;
+                if (j < n_rows)
+                {
+                    intersection = a[i * n_cols + col] & a[j * n_cols + col];
+                    union_set = a[i * n_cols + col] | a[j * n_cols + col];
+                } else
+                {
+                    intersection = a[i * n_cols + col] & 0;
+                    union_set = a[i * n_cols + col] | 0;
+                }
+                intersections[i * window_size + (j - i - 1)] += intersection;
+                unions[i * window_size + (j - i - 1)] += union_set;
+            }
+        }
+    }
+}
+
+void test_intersection_union_kernel(int rows, int columns, int window_size, int seed, bool only_bench = false)
+{
+    std::vector<int> h_in = make_random_matrix<int>(rows * columns, [](int x) { return (int)(x % 2); }, seed);
+
+    int *d_in = h2d(h_in);
+
+    float *intersections;
+    float *unions;
+    CHECK_CUDA(cudaMalloc(&intersections, rows * window_size * sizeof(float)));
+    CHECK_CUDA(cudaMalloc(&unions, rows * window_size * sizeof(float)));
+
+    BENCH(fill_intersection_union(d_in, rows, columns, window_size, intersections, unions));
+
+    if (only_bench)
+    {
+        std::cout << "test_intersection_union_kernel(rows=" << rows
+                  << ", columns=" << columns
+                  << ", window_size=" << window_size
+                  << ", seed=" << seed << ") Benchmarked\n";
+        cudaFree(d_in);
+        cudaFree(intersections);
+        cudaFree(unions);
+        return;
+    }
+    
+    std::vector<float> h_intersections = d2h(intersections, rows * window_size);
+    std::vector<float> h_unions = d2h(unions, rows * window_size);
+
+    std::vector<float> ref_intersections(rows * window_size, 0.0f);
+    std::vector<float> ref_unions(rows * window_size, 0.0f);
+    calculate_intersection_union(h_in.data(), rows, columns, window_size, ref_intersections.data(), ref_unions.data());
+    assert_allclose(intersections, ref_intersections, 1e-5, "Intersections");
+    assert_allclose(unions, ref_unions, 1e-5, "Unions");
+
+    std::cout << "test_intersection_union_kernel(rows=" << rows
+              << ", columns=" << columns
+              << ", window_size=" << window_size
+              << ", seed=" << seed << ") ✔︎\n";
+    cudaFree(d_in);
+    cudaFree(intersections);
+    cudaFree(unions);
+}
+
+void test_intersection_union(int seed = 42)
+{
+    test_intersection_union_kernel(64, 64, 64, seed);
+    test_intersection_union_kernel(64, 128, 64, seed);
+    test_intersection_union_kernel(64, 256, 64, seed);
+    test_intersection_union_kernel(128, 64, 64, seed);
+    test_intersection_union_kernel(256, 64, 64, seed);
+    test_intersection_union_kernel(128, 64, 128, seed);
+    test_intersection_union_kernel(256, 64, 128, seed);
+    test_intersection_union_kernel(128, 128, 64, seed);
+    test_intersection_union_kernel(256, 256, 64, seed);
+    test_intersection_union_kernel(128, 128, 128, seed);
+    test_intersection_union_kernel(256, 256, 128, seed);
+    test_intersection_union_kernel(16384, 28672, 64, seed, true);
+    test_intersection_union_kernel(16384, 28672, 128, seed, true);;
+    test_intersection_union_kernel(16384, 28672, 256, seed, true);;
+    // test_intersection_union_kernel(seed);
+}
