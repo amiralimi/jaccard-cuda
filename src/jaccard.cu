@@ -53,9 +53,10 @@ __global__ void fill_intersection_union_kernel(
     float *const __restrict__ unions)
 {
     __shared__ int shared_a[WINDOW_SIZE * 2][BLOCK_SIZE];
-    __shared__ int op1_block[BLOCK_SIZE];
     __shared__ int local_intersection[BLOCK_SIZE];
     __shared__ int local_union[BLOCK_SIZE];
+    __shared__ int op1_block[1];
+    int val_op1_block = 0;
 
     int global_row = blockIdx.x * WINDOW_SIZE;
     if (global_row >= n_rows)
@@ -91,17 +92,19 @@ __global__ void fill_intersection_union_kernel(
         // int *op1;
         if (blockIdx.z == 0)
         {
-            op1_block[col] = shared_a[i][col];
+            val_op1_block = shared_a[i][col];
         }
         else
         {
-            op1_block[col] = a[(i + global_row) * n_cols + global_col];
+            // I want to remove this shared variable but it yields wrong results, not sure why
+            op1_block[0]  = a[(i + global_row) * n_cols + global_col];
+            val_op1_block = a[(i + global_row) * n_cols + global_col];
         }
         __syncthreads();
         for (int j = i + 1; j < i + 1 + WINDOW_SIZE; j++)
         {
-            local_intersection[col] = (op1_block[col] & shared_a[j][col]);
-            local_union[col] = (op1_block[col] | shared_a[j][col]);
+            local_intersection[col] = (val_op1_block & shared_a[j][col]);
+            local_union[col] = (val_op1_block | shared_a[j][col]);
             // reduce intersection and union counts
             reduce_sum(local_intersection, local_union, BLOCK_SIZE);
             __syncthreads();
