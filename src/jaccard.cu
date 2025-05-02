@@ -4,16 +4,42 @@
 #include "jaccard.cuh"
 #include "utils.cuh"
 
-__device__ void reduce_sum(int *const __restrict__ arr, int size)
+template <typename T>
+__device__ __forceinline__ T warp_reduce_sum(T val) {
+    // warp-level reduce
+    for (int offset = warpSize / 2; offset > 0; offset /= 2) {
+        val += __shfl_down_sync(0xffffffff, val, offset);
+    }
+    return val;
+}
+
+__device__ void reduce_sum(int *const __restrict__ arr0, int *const __restrict__ arr1, int size)
 {
-    unsigned int tid = threadIdx.x;
-    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
+    int tid = threadIdx.x;
+    int lane_id = tid % warpSize;
+    int warp_id = tid / warpSize;
+    int num_warps = blockDim.x / warpSize;
+    if (warp_id == 0)
     {
-        if (tid < stride)
+        arr0[lane_id] += arr0[lane_id + warpSize];
+        for (int stride = warpSize / 2; stride > 0; stride >>= 1)
         {
-            arr[tid] += arr[tid + stride];
+            if (lane_id < stride)
+            {
+                arr0[lane_id] += arr0[lane_id + stride];
+            }
         }
-        __syncthreads();
+    } 
+    else if (warp_id == 1)
+    {
+        arr1[lane_id] += arr1[lane_id + warpSize];
+        for (int stride = warpSize / 2; stride > 0; stride >>= 1)
+        {
+            if (lane_id < stride)
+            {
+                arr1[lane_id] += arr1[lane_id + stride];
+            }
+        }
     }
 }
 
@@ -70,15 +96,15 @@ __global__ void fill_intersection_union_kernel(
         else
         {
             op1_block[col] = a[(i + global_row) * n_cols + global_col];
-            __syncthreads();
         }
+        __syncthreads();
         for (int j = i + 1; j < i + 1 + WINDOW_SIZE; j++)
         {
             local_intersection[col] = (op1_block[col] & shared_a[j][col]);
             local_union[col] = (op1_block[col] | shared_a[j][col]);
             // reduce intersection and union counts
-            reduce_sum(local_intersection, BLOCK_SIZE);
-            reduce_sum(local_union, BLOCK_SIZE);
+            reduce_sum(local_intersection, local_union, BLOCK_SIZE);
+            __syncthreads();
             // Store results
             if (threadIdx.x == 0)
             {
