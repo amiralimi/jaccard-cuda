@@ -17,6 +17,37 @@ __device__ void reduce_sum(int *const __restrict__ arr, int size)
     }
 }
 
+__global__ void compress_1bit_kernel(
+    const int *const __restrict__ src,
+    unsigned int *const __restrict__ dst,
+    int number_of_elements)
+{
+    constexpr unsigned FULL_MASK = 0xffffffff;
+    const int col = threadIdx.x; 
+    const int warp_idx = blockIdx.x * blockDim.x / 32; // Each warp processes 32 threads
+
+    int src_idx = warp_idx * 32 + col; 
+    
+    u_int32_t x = (src_idx < number_of_elements) ? __ldg(&src[src_idx]) : 0;
+    unsigned int packed = __ballot_sync(FULL_MASK, x != 0);
+    if (col % 32 == 0)
+    {
+        dst[warp_idx + col / 32] = packed;
+    }
+}
+
+void compress_1bit(
+    const int *const __restrict__ src,
+    unsigned int *const __restrict__ dst,
+    int rows, int cols)
+{
+    int block_size = 128; // 4 warps
+    int elem_count = rows * ceil((float)cols / 32);
+    int grid_size = ceil((float)elem_count / (block_size / 32)); 
+    std::cout << "compress_1bit: grid_size = " << grid_size << ", block_size = " << block_size << ", elem_count = " << elem_count << "\n";
+    compress_1bit_kernel<<<grid_size, block_size>>>(src, dst, rows *cols);
+}
+
 template <unsigned int WINDOW_SIZE, unsigned int BLOCK_SIZE>
 __global__ void fill_intersection_union_kernel(
     const int *const __restrict__ a,

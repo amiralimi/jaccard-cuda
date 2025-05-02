@@ -2,6 +2,11 @@
 
 __device__ void reduce_sum(int *const __restrict__ arr, int size);
 
+void compress_1bit(
+    const int *const __restrict__ src,
+    unsigned int *const __restrict__ dst,
+    int rows, int cols);
+
 void calculate_similarity(
     float *const __restrict__ intersections,
     float *const __restrict__ unions,
