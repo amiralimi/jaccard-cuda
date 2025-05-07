@@ -74,15 +74,15 @@ __global__ void fill_intersection_union_kernel(
 
     int global_col = blockIdx.y * BLOCK_SIZE + threadIdx.x;
     int col = threadIdx.x;
-    if (global_col >= n_cols)
-    {
-        return;
-    }
+    // if (global_col >= n_cols)
+    // {
+        // return;
+    // }
 
     // Load data into shared memory
     for (int i = load_start; i < load_start + 2 * WINDOW_SIZE; i++)
     {
-        if (i < n_rows)
+        if (i < n_rows && global_col < n_cols)
             shared_a[i - load_start][col] = a[i * n_cols + global_col];
         else
             shared_a[i - load_start][col] = 0;

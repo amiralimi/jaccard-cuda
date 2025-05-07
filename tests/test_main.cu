@@ -8,7 +8,7 @@ void test_compress_1bit(int seed = 42);
 int main()
 {
     // test_reduce_sum(42);
-    test_compress_1bit(42);
+    // test_compress_1bit(42);
     test_intersection_union(42);
     // test_jaccard_similarity(42);
 

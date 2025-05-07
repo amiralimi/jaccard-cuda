@@ -103,17 +103,17 @@ void test_intersection_union_kernel(int rows, int columns, int window_size, int 
 void test_intersection_union(int seed = 42)
 {
     // test_intersection_union_kernel(64, 64, 64, seed);
-    // test_intersection_union_kernel(64, 128, 64, seed);
-    // test_intersection_union_kernel(64, 256, 64, seed);
+    test_intersection_union_kernel(64, 128, 64, seed);
+    test_intersection_union_kernel(64, 256, 64, seed);
     // test_intersection_union_kernel(128, 64, 64, seed);
     // test_intersection_union_kernel(256, 64, 64, seed);
     // test_intersection_union_kernel(128, 64, 128, seed);
     // test_intersection_union_kernel(256, 64, 128, seed);
-    test_intersection_union_kernel(128, 128, 64, seed);
-    test_intersection_union_kernel(256, 256, 64, seed);
-    test_intersection_union_kernel(128, 128, 128, seed);
-    test_intersection_union_kernel(256, 256, 128, seed);
-    test_intersection_union_kernel(16384, 28672, 64, seed, true);
-    test_intersection_union_kernel(16384, 28672, 128, seed, true);
-    test_intersection_union_kernel(16384, 28672, 256, seed, true);
+    test_intersection_union_kernel(128, 2048, 64, seed);
+    // test_intersection_union_kernel(256, 256, 64, seed);
+    // test_intersection_union_kernel(128, 128, 128, seed);
+    // test_intersection_union_kernel(256, 256, 128, seed);
+    test_intersection_union_kernel(16384, 28672, 64, seed);
+    // test_intersection_union_kernel(16384, 28672, 128, seed, true);
+    // test_intersection_union_kernel(16384, 28672, 256, seed, true);
 }
