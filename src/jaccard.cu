@@ -144,13 +144,7 @@ void fill_intersection_union(
     float *const __restrict__ unions)
 {
     int num_row_blocks = ceil((float)n_rows / MAX_WINDOW_SIZE);
-    int num_column_blocks;
-    if constexpr (std::is_same_v<T, int>) {
-        num_column_blocks = ceil((float)n_rows / MAX_WINDOW_SIZE);
-    } else {
-        num_column_blocks = ceil((float)n_rows / MAX_WINDOW_SIZE / 32);
-        n_cols = n_cols / 32;
-    }
+    int num_column_blocks = ceil((float)n_cols / MAX_BLOCK_SIZE);
 
     // since the shared memory will run out on block sizes larger than 64x64, we need to split the window size into multiple blocks
     // and calculate the intersections and unions for each block
