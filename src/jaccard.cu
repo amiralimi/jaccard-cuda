@@ -159,6 +159,20 @@ void fill_intersection_union(
     CHECK_CUDA(cudaDeviceSynchronize());
 }
 
+#define INSTANTIATE_FILL_INTERSECTION_UNION(T)          \
+    template void fill_intersection_union<T>(           \
+        const T *const __restrict__ a,                  \
+        int n_rows,                                     \
+        int n_cols,                                     \
+        unsigned int window_size,                       \
+        float *const __restrict__ intersections,        \
+        float *const __restrict__ unions);
+
+#ifdef BUILD_TESTS
+INSTANTIATE_FILL_INTERSECTION_UNION(int)
+INSTANTIATE_FILL_INTERSECTION_UNION(unsigned int)
+#endif // BUILD_TESTS
+
 void __global__ calculate_similarity_kernel(
     float *const __restrict__ intersections,
     float *const __restrict__ unions,

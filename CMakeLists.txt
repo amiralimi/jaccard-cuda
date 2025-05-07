@@ -35,7 +35,10 @@ set_target_properties(jaccard_kernels
 
 # ─── 3. Unit tests ───────────────────────────────────────────────────────────
 option(BUILD_TESTS "Build CUDA unit tests" ON)
+
 if (BUILD_TESTS)
+    target_compile_definitions(jaccard_kernels PRIVATE BUILD_TESTS)
+
     enable_testing()
 
     file(GLOB TEST_SOURCES
