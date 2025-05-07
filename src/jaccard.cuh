@@ -13,8 +13,12 @@ void calculate_similarity(
     int n_rows,
     unsigned int window_size);
 
+template <typename T,
+std::enable_if_t<
+    std::is_same_v<T, int> || std::is_same_v<T, unsigned int>, bool> = true
+>
 void fill_intersection_union(
-    const int *const __restrict__ a,
+    const T *const __restrict__ a,
     int n_rows,
     int n_cols,
     unsigned int window_size,
@@ -26,4 +30,5 @@ void jaccard_similarity(
     int n_rows,
     int n_cols,
     unsigned int window_size,
-    float *const __restrict__ results);
+    float *const __restrict__ results, 
+    bool compress = false);

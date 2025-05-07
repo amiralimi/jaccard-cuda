@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdexcept>
+#include <type_traits>
 
 #include "jaccard.cuh"
 #include "utils.cuh"
@@ -46,11 +47,12 @@ void compress_1bit(
     int grid_size = ceil((float)elem_count / (block_size / 32)); 
     std::cout << "compress_1bit: grid_size = " << grid_size << ", block_size = " << block_size << ", elem_count = " << elem_count << "\n";
     compress_1bit_kernel<<<grid_size, block_size>>>(src, dst, rows *cols);
+    CHECK_CUDA(cudaDeviceSynchronize());
 }
 
-template <unsigned int WINDOW_SIZE, unsigned int BLOCK_SIZE>
+template <typename T, unsigned int WINDOW_SIZE, unsigned int BLOCK_SIZE>
 __global__ void fill_intersection_union_kernel(
-    const int *const __restrict__ a,
+    const T *const __restrict__ a,
     const int n_rows,
     const int n_cols,
     const int window_size,
@@ -105,8 +107,13 @@ __global__ void fill_intersection_union_kernel(
         }
         for (int j = i + 1; j < i + 1 + WINDOW_SIZE; j++)
         {
-            local_intersection[col] = (op1_block[col] & shared_a[j][col]);
-            local_union[col] = (op1_block[col] | shared_a[j][col]);
+            if constexpr (std::is_signed_v<T>) {
+                local_intersection[col] = (op1_block[col] & shared_a[j][col]);
+                local_union[col] = (op1_block[col] | shared_a[j][col]);
+            } else {
+                local_intersection[col] = __popc(op1_block[col] & shared_a[j][col]);
+                local_union[col] = __popc(op1_block[col] | shared_a[j][col]);
+            }
             // reduce intersection and union counts
             reduce_sum(local_intersection, BLOCK_SIZE);
             reduce_sum(local_union, BLOCK_SIZE);
@@ -121,24 +128,15 @@ __global__ void fill_intersection_union_kernel(
     }
 }
 
-// #define INSTANTIATE_INTERSECTION_UNION_KERNEL(WINDOW_SIZE, BLOCK_SIZE)                \
-//     template __global__ void fill_intersection_union_kernel<WINDOW_SIZE, BLOCK_SIZE>( \
-//         const int *const __restrict__ a,                                              \
-//         const int n_rows,                                                             \
-//         const int n_cols,                                                             \
-//         float *const __restrict__ intersections,                                      \
-//         float *const __restrict__ unions);
-
-// #ifdef BUILD_TESTS
-// INSTANTIATE_INTERSECTION_UNION_KERNEL(64, 64)
-// INSTANTIATE_INTERSECTION_UNION_KERNEL(32, 32)
-// #endif // BUILD_TESTS
-
 const int MAX_WINDOW_SIZE = 64;
 const int MAX_BLOCK_SIZE = 64;
 
+template <typename T,
+    std::enable_if_t<
+        std::is_same_v<T, int> || std::is_same_v<T, unsigned int>, bool>
+    >
 void fill_intersection_union(
-    const int *const __restrict__ a,
+    const T *const __restrict__ a,
     int n_rows,
     int n_cols,
     unsigned int window_size,
@@ -146,7 +144,7 @@ void fill_intersection_union(
     float *const __restrict__ unions)
 {
     int num_row_blocks = ceil((float)n_rows / MAX_WINDOW_SIZE);
-    int num_column_blocks = ceil((float)n_cols / MAX_BLOCK_SIZE);
+    int num_column_blocks = ceil((float)n_cols / 32 / MAX_BLOCK_SIZE);
 
     // since the shared memory will run out on block sizes larger than 64x64, we need to split the window size into multiple blocks
     // and calculate the intersections and unions for each block
@@ -156,7 +154,7 @@ void fill_intersection_union(
     dim3 grid_dim(num_row_blocks, num_column_blocks, num_windows);
     dim3 block_dim(MAX_BLOCK_SIZE);
 
-    fill_intersection_union_kernel<MAX_WINDOW_SIZE, MAX_BLOCK_SIZE><<<grid_dim, block_dim>>>(a, n_rows, n_cols, window_size, intersections, unions);
+    fill_intersection_union_kernel<T, MAX_WINDOW_SIZE, MAX_BLOCK_SIZE><<<grid_dim, block_dim>>>(a, n_rows, n_cols / 32, window_size, intersections, unions);
 
     CHECK_CUDA(cudaDeviceSynchronize());
 }
@@ -193,11 +191,20 @@ void jaccard_similarity(
     int n_rows,
     int n_cols,
     unsigned int window_size,
-    float *const __restrict__ results)
+    float *const __restrict__ results, 
+    bool compress)
 {
     float *intersections;
     CHECK_CUDA(cudaMalloc(&intersections, n_rows * window_size * sizeof(float)));
-    fill_intersection_union(a, n_rows, n_cols, window_size, intersections, results);
+    if (compress)
+    {
+        unsigned int* compressed;
+        CHECK_CUDA(cudaMalloc(&compressed, n_rows * (n_cols / 32) * sizeof(unsigned int)));
+        compress_1bit(a, compressed, n_rows, n_cols);
+        fill_intersection_union(compressed, n_rows, n_cols / 32, window_size, intersections, results);
+    } else {
+        fill_intersection_union(a, n_rows, n_cols, window_size, intersections, results);
+    }
     calculate_similarity(intersections, results, n_rows, window_size);
     CHECK_CUDA(cudaFree(intersections));
     CHECK_CUDA(cudaDeviceSynchronize());
