@@ -75,7 +75,7 @@ void test_intersection_union_kernel(int rows, int columns, int window_size, int 
         cudaFree(intersections_compressed);
         cudaFree(unions_compressed);
         cudaFree(compressed);
-        std::cout << "Benchmarked\n";
+        std::cout << "Benchmarked\n\n";
         return;
     }
     
@@ -88,7 +88,7 @@ void test_intersection_union_kernel(int rows, int columns, int window_size, int 
     assert_allclose(intersections, ref_intersections, 1e-5, "Intersections");
     assert_allclose(unions, ref_unions, 1e-5, "Unions");
 
-    std::cout << "Passed\n";
+    std::cout << "Passed\n\n";
     cudaFree(d_in);
     cudaFree(intersections);
     cudaFree(unions);

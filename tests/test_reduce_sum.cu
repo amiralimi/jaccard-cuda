@@ -22,6 +22,8 @@ __global__ void reduce_sum_wrapper(int* d_in, int n)
 
 void test_reduce_sum_kernel(int n, int seed)
 {
+    std::cout << "Testing reduce_sum_kernel with n=" << n
+              << ", seed=" << seed << "\n";
     int blockSize = 1;
     while (blockSize < n) blockSize <<= 1;
 
@@ -42,8 +44,7 @@ void test_reduce_sum_kernel(int n, int seed)
 
     assert(total == expected);
 
-    std::cout << "test_reduce_sum_single_block(n=" << n
-              << ", blockSize=" << blockSize << ") ✔︎ Σ=" << total << "\n";
+    std::cout << "Passed\n\n";
 
     cudaFree(d_in);
 }

@@ -27,6 +27,9 @@ void calculate_compress_1bit(
 
 void test_compress_1bit_kernel(int n_rows, int n_cols, int seed, bool only_bench = false)
 {
+    std::cout << "Testing compress_1bit_kernel with n_rows=" << n_rows
+              << ", n_cols=" << n_cols
+              << ", seed=" << seed << "\n";
     std::vector<int> h_in = make_random_matrix<int>(n_rows * n_cols, [](int x) { return (int)(x % 2); }, seed);
 
     int *d_in = h2d(h_in);
@@ -38,11 +41,9 @@ void test_compress_1bit_kernel(int n_rows, int n_cols, int seed, bool only_bench
 
     if (only_bench)
     {
-        std::cout << "test_compress_1bit_kernel(n_rows=" << n_rows
-                  << ", n_cols=" << n_cols
-                  << ", seed=" << seed << ") Benchmarked\n";
         cudaFree(d_in);
         cudaFree(d_out);
+        std::cout << "Benchmarked\n\n";
         return;
     }
 
@@ -52,9 +53,7 @@ void test_compress_1bit_kernel(int n_rows, int n_cols, int seed, bool only_bench
     
     assert_allclose(d_out, expected, 0, "compress_1bit output Results");
 
-    std::cout << "test_compress_1bit_kernel(n_rows=" << n_rows
-              << ", n_cols=" << n_cols
-              << ", seed=" << seed << ") Passed\n";
+    std::cout << "Passed\n\n";
 
     cudaFree(d_in);
     cudaFree(d_out);
@@ -62,10 +61,9 @@ void test_compress_1bit_kernel(int n_rows, int n_cols, int seed, bool only_bench
 
 void test_compress_1bit(int seed = 42)
 {
-    // test_compress_1bit_kernel(1000, 64, seed);
     test_compress_1bit_kernel(1000, 128, seed);
-    // test_compress_1bit_kernel(1000, 256, seed);
-    // test_compress_1bit_kernel(1000, 512, seed);
-    // test_compress_1bit_kernel(1000, 1024, seed);
+    test_compress_1bit_kernel(1000, 256, seed);
+    test_compress_1bit_kernel(1000, 512, seed);
+    test_compress_1bit_kernel(1000, 1024, seed);
     test_compress_1bit_kernel(16384, 28672, seed, true);
 }

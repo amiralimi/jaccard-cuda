@@ -39,6 +39,10 @@ void calculate_jaccard_similarity(
 
 void test_jaccard_similarity_kernel(int rows, int columns, int window_size, int seed, bool only_bench = false)
 {
+    std::cout << "Testing Jaccard Similarity Kernel with rows=" << rows
+              << ", columns=" << columns
+              << ", window_size=" << window_size
+              << ", seed=" << seed << "\n";
     std::vector<int> h_in = make_random_matrix<int>(rows * columns, [](int x) { return (int)(x % 2); }, seed);
 
     int *d_in = h2d(h_in);
@@ -52,13 +56,10 @@ void test_jaccard_similarity_kernel(int rows, int columns, int window_size, int 
 
     if (only_bench)
     {
-        std::cout << "test_jaccard_similarity_kernel(rows=" << rows
-                  << ", columns=" << columns
-                  << ", window_size=" << window_size
-                  << ", seed=" << seed << ") Benchmarked\n";
         cudaFree(d_in);
         cudaFree(d_results_compressed);
         cudaFree(d_results_uncompressed);
+        std::cout << "Benchmarked\n\n";
         return;
     }
 
@@ -68,6 +69,7 @@ void test_jaccard_similarity_kernel(int rows, int columns, int window_size, int 
     assert_allclose(d_results_uncompressed, expected_results, 1e-5f, "Jaccard Similarity Results Uncompressed");
     assert_allclose(d_results_compressed, expected_results, 1e-5f, "Jaccard Similarity Results Compressed");
 
+    std::cout << "Passed\n\n";
     cudaFree(d_in);
     cudaFree(d_results_compressed);
     cudaFree(d_results_uncompressed);
