@@ -82,11 +82,17 @@ void test_intersection_union_kernel(int rows, int columns, int window_size, int 
     std::vector<float> h_intersections = d2h(intersections, rows * window_size);
     std::vector<float> h_unions = d2h(unions, rows * window_size);
 
+    std::vector<float> h_intersections_compressed = d2h(intersections_compressed, rows * window_size);
+    std::vector<float> h_unions_compressed = d2h(unions_compressed, rows * window_size);
+
     std::vector<float> ref_intersections(rows * window_size, 0.0f);
     std::vector<float> ref_unions(rows * window_size, 0.0f);
     calculate_intersection_union(h_in.data(), rows, columns, window_size, ref_intersections.data(), ref_unions.data());
     assert_allclose(intersections, ref_intersections, 1e-5, "Intersections");
     assert_allclose(unions, ref_unions, 1e-5, "Unions");
+
+    assert_allclose(intersections_compressed, ref_intersections, 1e-5, "Compressed Intersections");
+    assert_allclose(unions_compressed, ref_unions, 1e-5, "Compressed Unions");
 
     std::cout << "Passed\n\n";
     cudaFree(d_in);

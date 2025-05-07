@@ -107,7 +107,7 @@ __global__ void fill_intersection_union_kernel(
         }
         for (int j = i + 1; j < i + 1 + WINDOW_SIZE; j++)
         {
-            if constexpr (std::is_signed_v<T>) {
+            if constexpr (std::is_same_v<T, int>) {
                 local_intersection[col] = (op1_block[col] & shared_a[j][col]);
                 local_union[col] = (op1_block[col] | shared_a[j][col]);
             } else {
@@ -145,7 +145,7 @@ void fill_intersection_union(
 {
     int num_row_blocks = ceil((float)n_rows / MAX_WINDOW_SIZE);
     int num_column_blocks;
-    if constexpr (std::is_signed_v<T>) {
+    if constexpr (std::is_same_v<T, int>) {
         num_column_blocks = ceil((float)n_rows / MAX_WINDOW_SIZE);
     } else {
         num_column_blocks = ceil((float)n_rows / MAX_WINDOW_SIZE / 32);
