@@ -144,7 +144,13 @@ void fill_intersection_union(
     float *const __restrict__ unions)
 {
     int num_row_blocks = ceil((float)n_rows / MAX_WINDOW_SIZE);
-    int num_column_blocks = ceil((float)n_cols / 32 / MAX_BLOCK_SIZE);
+    int num_column_blocks;
+    if constexpr (std::is_signed_v<T>) {
+        num_column_blocks = ceil((float)n_rows / MAX_WINDOW_SIZE);
+    } else {
+        num_column_blocks = ceil((float)n_rows / MAX_WINDOW_SIZE / 32);
+        n_cols = n_cols / 32;
+    }
 
     // since the shared memory will run out on block sizes larger than 64x64, we need to split the window size into multiple blocks
     // and calculate the intersections and unions for each block
@@ -154,7 +160,7 @@ void fill_intersection_union(
     dim3 grid_dim(num_row_blocks, num_column_blocks, num_windows);
     dim3 block_dim(MAX_BLOCK_SIZE);
 
-    fill_intersection_union_kernel<T, MAX_WINDOW_SIZE, MAX_BLOCK_SIZE><<<grid_dim, block_dim>>>(a, n_rows, n_cols / 32, window_size, intersections, unions);
+    fill_intersection_union_kernel<T, MAX_WINDOW_SIZE, MAX_BLOCK_SIZE><<<grid_dim, block_dim>>>(a, n_rows, n_cols, window_size, intersections, unions);
 
     CHECK_CUDA(cudaDeviceSynchronize());
 }
