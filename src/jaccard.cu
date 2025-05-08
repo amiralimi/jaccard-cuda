@@ -73,10 +73,6 @@ __global__ void fill_intersection_union_kernel(
 
     int global_col = blockIdx.y * BLOCK_SIZE + threadIdx.x;
     int col = threadIdx.x;
-    // if (global_col >= n_cols)
-    // {
-        // return;
-    // }
 
     // Load data into shared memory
     for (int i = load_start; i < load_start + 2 * WINDOW_SIZE; i++)
@@ -96,14 +92,11 @@ __global__ void fill_intersection_union_kernel(
         // for the rest of the blocks, we load the first op from global memory
         // int *op1;
         if (blockIdx.z == 0)
-        {
             op1_block[col] = shared_a[i][col];
-        }
         else
-        {
             op1_block[col] = a[(i + global_row) * n_cols + global_col];
-            __syncthreads();
-        }
+        __syncthreads();
+
         for (int j = i + 1; j < i + 1 + WINDOW_SIZE; j++)
         {
             if constexpr (std::is_same_v<T, int>) {
