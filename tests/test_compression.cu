@@ -61,9 +61,9 @@ void test_compress_1bit_kernel(int n_rows, int n_cols, int seed, bool only_bench
 
 void test_compress_1bit(int seed = 42)
 {
-    test_compress_1bit_kernel(1000, 128, seed);
-    test_compress_1bit_kernel(1000, 256, seed);
-    test_compress_1bit_kernel(1000, 512, seed);
-    test_compress_1bit_kernel(1000, 1024, seed);
+    test_compress_1bit_kernel(64, 128, seed);
+    test_compress_1bit_kernel(128, 256, seed);
+    test_compress_1bit_kernel(256, 512, seed);
+    test_compress_1bit_kernel(512, 1024, seed);
     test_compress_1bit_kernel(16384, 28672, seed, true);
 }

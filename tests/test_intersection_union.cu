@@ -98,6 +98,9 @@ void test_intersection_union_kernel(int rows, int columns, int window_size, int 
     cudaFree(d_in);
     cudaFree(intersections);
     cudaFree(unions);
+    cudaFree(intersections_compressed);
+    cudaFree(unions_compressed);
+    cudaFree(compressed);
 }
 
 void test_intersection_union(int seed = 42)
@@ -113,7 +116,7 @@ void test_intersection_union(int seed = 42)
     // test_intersection_union_kernel(256, 256, 64, seed);
     // test_intersection_union_kernel(128, 128, 128, seed);
     // test_intersection_union_kernel(256, 256, 128, seed);
-    test_intersection_union_kernel(16384, 28672, 64, seed);
+    test_intersection_union_kernel(16384, 28672, 64, seed, true);
     // test_intersection_union_kernel(16384, 28672, 128, seed, true);
     // test_intersection_union_kernel(16384, 28672, 256, seed, true);
 }

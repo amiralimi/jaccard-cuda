@@ -45,7 +45,6 @@ void compress_1bit(
     int block_size = 128; // 4 warps
     int elem_count = rows * ceil((float)cols / 32);
     int grid_size = ceil((float)elem_count / (block_size / 32)); 
-    std::cout << "compress_1bit: grid_size = " << grid_size << ", block_size = " << block_size << ", elem_count = " << elem_count << "\n";
     compress_1bit_kernel<<<grid_size, block_size>>>(src, dst, rows *cols);
     CHECK_CUDA(cudaDeviceSynchronize());
 }
