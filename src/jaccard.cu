@@ -7,6 +7,7 @@
 template <typename T>
 __device__ __forceinline__ T warp_reduce_sum(T val) {
     // warp-level reduce
+    #pragma unroll
     for (int offset = warpSize / 2; offset > 0; offset /= 2) {
         val += __shfl_down_sync(0xffffffff, val, offset);
     }
@@ -22,24 +23,12 @@ __device__ void reduce_sum(int *const __restrict__ arr0, int *const __restrict__
     if (warp_id == 0)
     {
         arr0[lane_id] += arr0[lane_id + warpSize];
-        for (int stride = warpSize / 2; stride > 0; stride >>= 1)
-        {
-            if (lane_id < stride)
-            {
-                arr0[lane_id] += arr0[lane_id + stride];
-            }
-        }
+        arr0[lane_id] = warp_reduce_sum(arr0[lane_id]);
     } 
     else if (warp_id == 1)
     {
         arr1[lane_id] += arr1[lane_id + warpSize];
-        for (int stride = warpSize / 2; stride > 0; stride >>= 1)
-        {
-            if (lane_id < stride)
-            {
-                arr1[lane_id] += arr1[lane_id + stride];
-            }
-        }
+        arr1[lane_id] = warp_reduce_sum(arr1[lane_id]);
     }
 }
 
