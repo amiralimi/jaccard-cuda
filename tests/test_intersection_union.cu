@@ -35,11 +35,6 @@ void calculate_intersection_union(
     }
 }
 
-#define COMPRESS_AND_CALCULATE(a, compressed, n_rows, n_cols, window_size, intersections, unions)       \
-    compress_1bit(a, compressed, n_rows, n_cols);                                                       \
-    fill_intersection_union(compressed, n_rows, n_cols / 32, window_size, intersections, unions);
-
-
 void test_intersection_union_kernel(int rows, int columns, int window_size, int seed, bool only_bench = false)
 {
     std::cout << "test_intersection_union_kernel(rows=" << rows
@@ -50,10 +45,7 @@ void test_intersection_union_kernel(int rows, int columns, int window_size, int 
 
     int *d_in = h2d(h_in);
 
-    float *intersections;
-    float *unions;
-    float *intersections_compressed;
-    float *unions_compressed;
+    float *intersections, *unions, *intersections_compressed, *unions_compressed;
     CHECK_CUDA(cudaMalloc(&intersections, rows * window_size * sizeof(float)));
     CHECK_CUDA(cudaMalloc(&unions, rows * window_size * sizeof(float)));
     CHECK_CUDA(cudaMalloc(&intersections_compressed, rows * window_size * sizeof(float)));
@@ -64,7 +56,8 @@ void test_intersection_union_kernel(int rows, int columns, int window_size, int 
 
     BENCH(fill_intersection_union(d_in, rows, columns, window_size, intersections, unions));
     BENCH(
-        COMPRESS_AND_CALCULATE(d_in, compressed, rows, columns, window_size, intersections_compressed, unions_compressed)
+        compress_1bit(d_in, compressed, rows, columns); 
+        fill_intersection_union(compressed, rows, columns / 32, window_size, intersections_compressed, unions_compressed);
     );
 
     if (only_bench)
@@ -78,12 +71,6 @@ void test_intersection_union_kernel(int rows, int columns, int window_size, int 
         std::cout << "Benchmarked\n\n";
         return;
     }
-    
-    std::vector<float> h_intersections = d2h(intersections, rows * window_size);
-    std::vector<float> h_unions = d2h(unions, rows * window_size);
-
-    std::vector<float> h_intersections_compressed = d2h(intersections_compressed, rows * window_size);
-    std::vector<float> h_unions_compressed = d2h(unions_compressed, rows * window_size);
 
     std::vector<float> ref_intersections(rows * window_size, 0.0f);
     std::vector<float> ref_unions(rows * window_size, 0.0f);
