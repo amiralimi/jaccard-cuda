@@ -9,6 +9,21 @@
 #define THREAD_PER_BLOCK 512
 #define WARP_SIZE 32
 
+#define BENCH(...)                                                               \
+    do                                                                           \
+    {                                                                            \
+        auto _bench_start =                                                      \
+            std::chrono::high_resolution_clock::now();                           \
+        __VA_ARGS__;                                                             \
+        auto _bench_end =                                                        \
+            std::chrono::high_resolution_clock::now();                           \
+        double _bench_ms =                                                       \
+            std::chrono::duration<double, std::milli>(_bench_end - _bench_start) \
+                .count();                                                        \
+        std::cout << #__VA_ARGS__                                                \
+                  << " took " << _bench_ms << " ms\n";                           \
+    } while (0)
+
 
 template <unsigned int THREAD_IN_BLOCK>
 __device__ void warpReduce(volatile float *cache, unsigned int tid) {
@@ -125,9 +140,11 @@ int main() {
     const int NUM_BLOCK          = 1024;
     const int NUM_ELE_PER_BLOCK  = N / NUM_BLOCK;
     const int NUM_ELE_PER_THREAD = NUM_ELE_PER_BLOCK / THREAD_PER_BLOCK;
-    float *out                   = (float *)malloc(NUM_BLOCK * sizeof(float));
-    float *d_out;
-    cudaMalloc((void **)&d_out, NUM_BLOCK * sizeof(float));
+    float *out1                  = (float *)malloc(NUM_BLOCK * sizeof(float));
+    float *out2                  = (float *)malloc(NUM_BLOCK * sizeof(float));
+    float *d_out1, *d_out2;
+    cudaMalloc((void **)&d_out1, NUM_BLOCK * sizeof(float));
+    cudaMalloc((void **)&d_out2, NUM_BLOCK * sizeof(float));
     float *res = (float *)malloc(NUM_BLOCK * sizeof(float));
 
     for (int i = 0; i < N; i++) {
@@ -148,20 +165,24 @@ int main() {
 
     dim3 Grid(NUM_BLOCK, 1);
     dim3 Block(THREAD_PER_BLOCK, 1);
-    reduce1<THREAD_PER_BLOCK, NUM_ELE_PER_THREAD><<<Grid, Block>>>(d_a, d_out, N);
+    BENCH(reduce2<THREAD_PER_BLOCK, NUM_ELE_PER_THREAD><<<Grid, Block>>>(d_a, d_out1, N));
+    BENCH(reduce2<THREAD_PER_BLOCK, NUM_ELE_PER_THREAD><<<Grid, Block>>>(d_a, d_out2, N));
 
-    cudaMemcpy(out, d_out, NUM_BLOCK * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(out1, d_out1, NUM_BLOCK * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(out2, d_out2, NUM_BLOCK * sizeof(float), cudaMemcpyDeviceToHost);
 
-    if (check(out, res, NUM_BLOCK)) {
+    if (check(out1, res, NUM_BLOCK) && check(out2, res, NUM_BLOCK)) {
         printf("the ans is right\n");
     } else {
         printf("the ans is wrong\n");
         for (int i = 0; i < NUM_BLOCK; i++) {
-            printf("%lf ", out[i]);
+            printf("%lf ", out1[i]);
+            printf("%lf ", out2[i]);
         }
         printf("\n");
     }
 
     cudaFree(d_a);
-    cudaFree(d_out);
+    cudaFree(d_out1);
+    cudaFree(d_out2);
 }
