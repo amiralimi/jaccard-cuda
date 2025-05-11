@@ -47,9 +47,8 @@ void test_jaccard_similarity_kernel(int rows, int columns, int window_size, int 
 
     int *d_in = h2d(h_in);
 
-    float *d_results, *d_results_compressed;
-    CHECK_CUDA(cudaMalloc(&d_results, rows * window_size * sizeof(float)));
-    CHECK_CUDA(cudaMalloc(&d_results_compressed, rows * window_size * sizeof(float)));
+    INIT_CUDA_ARRAY(float, d_results, rows * window_size);
+    INIT_CUDA_ARRAY(float, d_results_compressed, rows * window_size);
 
     BENCH(jaccard_similarity(d_in, rows, columns, window_size, d_results));
     BENCH(jaccard_similarity(d_in, rows, columns, window_size, d_results_compressed, true));

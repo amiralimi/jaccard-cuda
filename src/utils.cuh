@@ -11,3 +11,9 @@
             std::exit(EXIT_FAILURE);                                   \
         }                                                              \
     } while (0)
+
+#define INIT_CUDA_ARRAY(type, name, size)                              \
+    type *name;                                                        \
+    CHECK_CUDA(cudaMalloc((void **)&name, size * sizeof(type)));       \
+    CHECK_CUDA(cudaMemset(name, 0, size * sizeof(type)));              \
+    CHECK_CUDA(cudaDeviceSynchronize());

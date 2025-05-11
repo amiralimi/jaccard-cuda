@@ -23,8 +23,7 @@ std::vector<T> d2h(const T *d_ptr, std::size_t n)
 template <typename T>
 T *h2d(const std::vector<T> &h)
 {
-    T *d_ptr = nullptr;
-    CHECK_CUDA(cudaMalloc(&d_ptr, h.size() * sizeof(T)));
+    INIT_CUDA_ARRAY(T, d_ptr, h.size());
     CHECK_CUDA(cudaMemcpy(d_ptr, h.data(),
                           h.size() * sizeof(T),
                           cudaMemcpyHostToDevice));

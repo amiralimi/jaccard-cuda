@@ -34,8 +34,7 @@ void test_compress_1bit_kernel(int n_rows, int n_cols, int seed, bool only_bench
 
     int *d_in = h2d(h_in);
 
-    unsigned int *d_out;
-    CHECK_CUDA(cudaMalloc(&d_out, n_rows * (n_cols / 32) * sizeof(unsigned int)));
+    INIT_CUDA_ARRAY(unsigned int, d_out, n_rows * (n_cols / 32));
 
     BENCH(compress_1bit(d_in, d_out, n_rows, n_cols));
 

@@ -221,12 +221,10 @@ void jaccard_similarity(
     float *const __restrict__ results, 
     bool compress)
 {
-    float *intersections;
-    CHECK_CUDA(cudaMalloc(&intersections, n_rows * window_size * sizeof(float)));
+    INIT_CUDA_ARRAY(float, intersections, n_rows * window_size);
     if (compress)
     {
-        unsigned int* compressed;
-        CHECK_CUDA(cudaMalloc(&compressed, n_rows * (n_cols / 32) * sizeof(unsigned int)));
+        INIT_CUDA_ARRAY(unsigned int, compressed, n_rows * (n_cols / 32));
         compress_1bit(a, compressed, n_rows, n_cols);
         fill_intersection_union(compressed, n_rows, n_cols / 32, window_size, intersections, results);
     } else {

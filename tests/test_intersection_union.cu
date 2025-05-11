@@ -45,14 +45,12 @@ void test_intersection_union_kernel(int rows, int columns, int window_size, int 
 
     int *d_in = h2d(h_in);
 
-    float *intersections, *unions, *intersections_compressed, *unions_compressed;
-    CHECK_CUDA(cudaMalloc(&intersections, rows * window_size * sizeof(float)));
-    CHECK_CUDA(cudaMalloc(&unions, rows * window_size * sizeof(float)));
-    CHECK_CUDA(cudaMalloc(&intersections_compressed, rows * window_size * sizeof(float)));
-    CHECK_CUDA(cudaMalloc(&unions_compressed, rows * window_size * sizeof(float)));
+    INIT_CUDA_ARRAY(float, intersections, rows * window_size);
+    INIT_CUDA_ARRAY(float, unions, rows * window_size);
+    INIT_CUDA_ARRAY(float, intersections_compressed, rows * window_size);
+    INIT_CUDA_ARRAY(float, unions_compressed, rows * window_size);
 
-    unsigned int *compressed;
-    CHECK_CUDA(cudaMalloc(&compressed, rows * (columns / 32) * sizeof(unsigned int)));
+    INIT_CUDA_ARRAY(unsigned int, compressed, rows * (columns / 32));
 
     BENCH(fill_intersection_union(d_in, rows, columns, window_size, intersections, unions));
     BENCH(
