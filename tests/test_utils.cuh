@@ -85,17 +85,18 @@ make_random_matrix(std::size_t size,
     return out;
 }
 
-#define BENCH(fn_call)                                                           \
+#define BENCH(...)                                                               \
     do                                                                           \
     {                                                                            \
         auto _bench_start =                                                      \
             std::chrono::high_resolution_clock::now();                           \
-        fn_call;                                                                 \
+        __VA_ARGS__;                                                             \
+        CHECK_CUDA(cudaDeviceSynchronize());                                     \
         auto _bench_end =                                                        \
             std::chrono::high_resolution_clock::now();                           \
         double _bench_ms =                                                       \
             std::chrono::duration<double, std::milli>(_bench_end - _bench_start) \
                 .count();                                                        \
-        std::cout << #fn_call                                                    \
+        std::cout << #__VA_ARGS__                                                \
                   << " took " << _bench_ms << " ms\n";                           \
     } while (0)
