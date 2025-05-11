@@ -44,13 +44,13 @@ set_target_properties(reduce_sum_app
 
 # ─── 3. Unit tests ───────────────────────────────────────────────────────────
 option(BUILD_TESTS "Build CUDA unit tests" ON)
+
 if (BUILD_TESTS)
+    enable_testing()
 
-enable_testing()
-
-file(GLOB TEST_SOURCES
-"${TEST_DIR}/test_*.cu"
-)
+    file(GLOB TEST_SOURCES
+    "${TEST_DIR}/test_*.cu"
+    )
     # remove test_main.cu so it's not compiled into the object library
     list(REMOVE_ITEM ALL_SRC_CU "${TEST_DIR}/test_main.cu")
 
@@ -61,6 +61,8 @@ file(GLOB TEST_SOURCES
     set_target_properties(jaccard_tests
     PROPERTIES CUDA_SEPARABLE_COMPILATION ON
     )
+
+    target_compile_definitions(jaccard_kernels PRIVATE BUILD_TESTS)
     target_compile_definitions(jaccard_tests PRIVATE BUILD_TESTS)
 
     add_test(NAME JaccardUnitTests COMMAND jaccard_tests)

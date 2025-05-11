@@ -49,6 +49,8 @@ void assert_allclose(const T *d_ptr,
         }
         else
         {
+            // std::cout << "Comparing index " << i << ": "
+            //   << h[i] << " vs " << ref[i] << "\n";
             assert(h[i] == ref[i]);
         }
     }
