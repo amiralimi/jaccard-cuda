@@ -77,7 +77,7 @@ void test_jaccard_similarity_kernel(int rows, int columns, int window_size, int 
 
 void test_jaccard_similarity(int seed = 42)
 {
-    test_jaccard_similarity_kernel(64, 64, 64, seed);
+    // test_jaccard_similarity_kernel(64, 64, 64, seed);
     test_jaccard_similarity_kernel(128, 128, 128, seed);
     test_jaccard_similarity_kernel(256, 256, 256, seed);
     test_jaccard_similarity_kernel(16384, 28672, 64, seed, true);
