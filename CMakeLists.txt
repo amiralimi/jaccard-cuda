@@ -16,8 +16,9 @@ include_directories(${TEST_DIR})
 file(GLOB ALL_SRC_CU
     "${SRC_DIR}/*.cu"
 )
-# remove main.cu so it's not compiled into the object library
+# remove main.cu and reduce.cu so it's not compiled into the object library
 list(REMOVE_ITEM ALL_SRC_CU "${SRC_DIR}/main.cu")
+list(REMOVE_ITEM ALL_SRC_CU "${SRC_DIR}/reduce.cu")
 
 add_library(jaccard_kernels OBJECT ${ALL_SRC_CU})
 set_target_properties(jaccard_kernels
@@ -33,24 +34,34 @@ set_target_properties(jaccard_kernels
     # PROPERTIES CUDA_SEPARABLE_COMPILATION ON
 # )
 
+add_executable(reduce_sum_app
+    $<TARGET_OBJECTS:jaccard_kernels>
+    ${SRC_DIR}/reduce.cu
+)
+set_target_properties(reduce_sum_app
+    PROPERTIES CUDA_SEPARABLE_COMPILATION ON
+)
+
 # ─── 3. Unit tests ───────────────────────────────────────────────────────────
 option(BUILD_TESTS "Build CUDA unit tests" ON)
 if (BUILD_TESTS)
-    enable_testing()
 
-    file(GLOB TEST_SOURCES
-        "${TEST_DIR}/test_*.cu"
-    )
+enable_testing()
+
+file(GLOB TEST_SOURCES
+"${TEST_DIR}/test_*.cu"
+)
     # remove test_main.cu so it's not compiled into the object library
     list(REMOVE_ITEM ALL_SRC_CU "${TEST_DIR}/test_main.cu")
 
     add_executable(jaccard_tests
-        $<TARGET_OBJECTS:jaccard_kernels>
-        ${TEST_SOURCES}
+    $<TARGET_OBJECTS:jaccard_kernels>
+    ${TEST_SOURCES}
     )
     set_target_properties(jaccard_tests
-        PROPERTIES CUDA_SEPARABLE_COMPILATION ON
+    PROPERTIES CUDA_SEPARABLE_COMPILATION ON
     )
+    target_compile_definitions(jaccard_tests PRIVATE BUILD_TESTS)
 
     add_test(NAME JaccardUnitTests COMMAND jaccard_tests)
 endif()

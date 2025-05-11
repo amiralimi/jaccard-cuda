@@ -4,16 +4,31 @@
 #include "jaccard.cuh"
 #include "utils.cuh"
 
-__device__ void reduce_sum(int *const __restrict__ arr, int size)
+template <typename T>
+__device__ __forceinline__ T warp_reduce_sum(T val) {
+    // warp-level reduce
+    #pragma unroll
+    for (int offset = warpSize / 2; offset > 0; offset /= 2) {
+        val += __shfl_down_sync(0xffffffff, val, offset);
+    }
+    return val;
+}
+
+__device__ void reduce_sum(int *const __restrict__ arr0, int *const __restrict__ arr1, int size)
 {
-    unsigned int tid = threadIdx.x;
-    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
+    int tid = threadIdx.x;
+    int lane_id = tid % warpSize;
+    int warp_id = tid / warpSize;
+    int num_warps = blockDim.x / warpSize;
+    if (warp_id == 0)
     {
-        if (tid < stride)
-        {
-            arr[tid] += arr[tid + stride];
-        }
-        __syncthreads();
+        arr0[lane_id] += arr0[lane_id + warpSize];
+        arr0[lane_id] = warp_reduce_sum(arr0[lane_id]);
+    } 
+    else if (warp_id == 1)
+    {
+        arr1[lane_id] += arr1[lane_id + warpSize];
+        arr1[lane_id] = warp_reduce_sum(arr1[lane_id]);
     }
 }
 
@@ -27,9 +42,10 @@ __global__ void fill_intersection_union_kernel(
     float *const __restrict__ unions)
 {
     __shared__ int shared_a[WINDOW_SIZE * 2][BLOCK_SIZE];
-    __shared__ int op1_block[BLOCK_SIZE];
     __shared__ int local_intersection[BLOCK_SIZE];
     __shared__ int local_union[BLOCK_SIZE];
+    __shared__ int op1_block[1];
+    int val_op1_block = 0;
 
     int global_row = blockIdx.x * WINDOW_SIZE;
     if (global_row >= n_rows)
@@ -65,20 +81,22 @@ __global__ void fill_intersection_union_kernel(
         // int *op1;
         if (blockIdx.z == 0)
         {
-            op1_block[col] = shared_a[i][col];
+            val_op1_block = shared_a[i][col];
         }
         else
         {
-            op1_block[col] = a[(i + global_row) * n_cols + global_col];
-            __syncthreads();
+            // I want to remove this shared variable but it yields wrong results, not sure why
+            op1_block[0]  = a[(i + global_row) * n_cols + global_col];
+            val_op1_block = a[(i + global_row) * n_cols + global_col];
         }
+        __syncthreads();
         for (int j = i + 1; j < i + 1 + WINDOW_SIZE; j++)
         {
-            local_intersection[col] = (op1_block[col] & shared_a[j][col]);
-            local_union[col] = (op1_block[col] | shared_a[j][col]);
+            local_intersection[col] = (val_op1_block & shared_a[j][col]);
+            local_union[col] = (val_op1_block | shared_a[j][col]);
             // reduce intersection and union counts
-            reduce_sum(local_intersection, BLOCK_SIZE);
-            reduce_sum(local_union, BLOCK_SIZE);
+            reduce_sum(local_intersection, local_union, BLOCK_SIZE);
+            __syncthreads();
             // Store results
             if (threadIdx.x == 0)
             {
