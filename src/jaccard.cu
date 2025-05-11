@@ -109,13 +109,22 @@ __global__ void fill_intersection_union_kernel(
         // int *op1;
         if (blockIdx.z == 0)
         {
+            op1_block[0] = shared_a[i][col];
             val_op1_block = shared_a[i][col];
         }
         else
         {
             // I want to remove this shared variable but it yields wrong results, not sure why
-            op1_block[0]  = a[(i + global_row) * n_cols + global_col];
-            val_op1_block = a[(i + global_row) * n_cols + global_col];
+            if ((i + global_row) < n_rows && global_col < n_cols)
+            {
+                val_op1_block = a[(i + global_row) * n_cols + global_col];
+                op1_block[0] = a[(i + global_row) * n_cols + global_col];
+            }
+            else
+            {
+                val_op1_block = 0;
+                op1_block[0] = 0;
+            }
         }
         __syncthreads();
         for (int j = i + 1; j < i + 1 + WINDOW_SIZE; j++)

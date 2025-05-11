@@ -9,8 +9,8 @@ int main()
 {
     // test_reduce_sum(42);
     // test_compress_1bit(42);
-    test_intersection_union(42);
-    // test_jaccard_similarity(42);
+    // test_intersection_union(42);
+    test_jaccard_similarity(42);
 
     std::cout << "\nAll requested unit‑tests passed\n";
     return 0;
